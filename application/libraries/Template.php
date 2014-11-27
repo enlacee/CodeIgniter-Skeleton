@@ -21,6 +21,7 @@ class Template {
     protected $description = FALSE;
 
     protected $metadata = array();
+    private $stacksMetaData = array(); // just useful so var    
 
     protected $js = array();
     protected $css = array();
@@ -86,12 +87,36 @@ class Template {
      * @param   string  $content
      * @return  void
      */
-    public function add_metadata($name, $content)
+    public function add_metadata($name, $content, $position = 'ASC')
     {
         $name = htmlspecialchars(strip_tags($name));
         $content = htmlspecialchars(strip_tags($content));
 
-        $this->metadata[$name] = $content;
+        if ($name == 'description'
+            || $name == 'keyworks' 
+            || $name == 'og:title'
+            || $name == 'og:description')
+        {
+            $this->metadata[$name] = '';
+            $stacks = $this->stacksMetaData;
+            $stacks[$name][] = $content;
+
+            // first add -> first seen
+            if ($position == 'ASC') {
+                for ($i = 0; $i < count($stacks[$name]); $i++) {                    
+                    $this->metadata[$name] .= empty($stacks[$name][$i]) ? '' : $stacks[$name][$i] .' ';
+                }
+            } else if ($position == 'DESC') { // fisrt add -> last seen
+                for ($i = count($stacks[$name])-1; $i >= 0; $i--) {
+                    $this->metadata[$name] .= empty($stacks[$name][$i]) ? '' : $stacks[$name][$i] . ' ';
+                }
+            }
+            $this->metadata[$name] = trim($this->metadata[$name]);    
+            $this->stacksMetaData = $stacks;
+
+        } else {
+            $this->metadata[$name] = $content;
+        }
     }
 
     /**
@@ -168,7 +193,7 @@ class Template {
         $js = array();
         foreach ($this->js as $js_file)
         {
-            $js[] = '<script src="' . assets_url('js/' . $js_file) . '"></script>';
+            $js[] = '<script src="' . assets_url($js_file) . '"></script>';
         }
         $js = implode('', $js);
 
@@ -176,7 +201,7 @@ class Template {
         $css = array();
         foreach ($this->css as $css_file)
         {
-            $css[] = '<link rel="stylesheet" href="' . assets_url('css/' . $css_file) . '">';
+            $css[] = '<link rel="stylesheet" href="' . assets_url($css_file) . '">';
         }
         $css = implode('', $css);
         
